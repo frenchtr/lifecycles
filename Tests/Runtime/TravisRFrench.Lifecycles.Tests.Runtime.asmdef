@@ -1,6 +1,6 @@
 {
-    "name": "TravisRFrench.UnityPackageTemplate.Tests.Runtime",
-    "rootNamespace": "TravisRFrench.UnityPackageTemplate.Tests.Runtime",
+    "name": "TravisRFrench.Lifecycles.Tests.Runtime",
+    "rootNamespace": "TravisRFrench.Lifecycles.Tests.Runtime",
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"

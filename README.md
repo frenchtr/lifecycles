@@ -1,2 +1,2 @@
-# Unity Package Template
-A template for creating Unity packages.
+# Lifecycles
+A lifecycle management system for Unity.

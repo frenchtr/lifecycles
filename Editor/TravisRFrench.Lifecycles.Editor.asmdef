@@ -1,6 +1,6 @@
 {
-    "name": "TravisRFrench.UnityPackageTemplate.Editor",
-    "rootNamespace": "TravisRFrench.UnityPackageTemplate.Editor",
+    "name": "TravisRFrench.Lifecycles.Editor",
+    "rootNamespace": "TravisRFrench.Lifecycles.Editor",
     "references": [],
     "includePlatforms": [
         "Editor"
