@@ -64,7 +64,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 
 		public void AwakenAll()
 		{
-			foreach (var instance in this.managedInstances)
+			var instancesToAwaken = this.managedInstances.ToList();
+			foreach (var instance in instancesToAwaken)
 			{
 				this.RequestAwaken(instance);
 			}
@@ -72,7 +73,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 
 		public void EnableAll()
 		{
-			foreach (var instance in this.managedInstances)
+			var instancesToEnable = this.managedInstances.ToList();
+			foreach (var instance in instancesToEnable)
 			{
 				this.RequestEnable(instance);
 			}
@@ -80,7 +82,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 
 		public void DisableAll()
 		{
-			foreach (var instance in this.managedInstances)
+			var instancesToDisable = this.managedInstances.ToList();
+			foreach (var instance in instancesToDisable)
 			{
 				this.RequestDisable(instance);
 			}
@@ -88,7 +91,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 
 		public void DestroyAll()
 		{
-			foreach (var instance in this.managedInstances)
+			var instancesToDestroy = this.managedInstances.ToList();
+			foreach (var instance in instancesToDestroy)
 			{
 				this.RequestDestroy(instance);
 			}
@@ -152,6 +156,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 			}
 
 			this.destroyQueue.Add(instance);
+
+			this.DestroyImmediate(instance);			
 		}
 
 		public void Tick()
@@ -368,6 +374,61 @@ namespace TravisRFrench.Lifecycles.Runtime
 					Debug.LogError($"An error occurred when unmanaging instance {instance}.");
 					throw;
 				}
+			}
+		}
+		
+		
+
+		private void DestroyImmediate(IHasManagedLifeCycle instance)
+		{
+			try
+			{
+				instance.OnDeactivate();
+			}
+			catch (Exception exception)
+			{
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnDeactivate)} method of {instance}.");
+				throw;
+			}
+			
+			try
+			{
+				instance.OnUnbind();
+			}
+			catch (Exception exception)
+			{
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnUnbind)} method of {instance}.");
+				throw;
+			}
+			
+			try
+			{
+				instance.OnUnregister();
+			}
+			catch (Exception exception)
+			{
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnUnregister)} method of {instance}.");
+				throw;
+			}
+			
+			try
+			{
+				instance.OnDispose();
+			}
+			catch (Exception exception)
+			{
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnDispose)} method of {instance}.");
+				throw;
+			}
+
+			try
+			{
+				this.Unmanage(instance);
+			}
+			catch (Exception exception)
+			{
+				Debug.LogError($"An error occurred when unmanaging instance {instance}.");
+				throw;
 			}
 		}
 	}

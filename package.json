@@ -1,7 +1,7 @@
 {
     "name": "com.travisrfrench.lifecycles",
     "displayName": "Lifecycles",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "A lifecycle management system for Unity.",
     "author": {
         "name": "Travis R. French"
