@@ -177,7 +177,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 		
 		private void AwakenEnqueued()
 		{
-			foreach (var instance in this.awakenQueue)
+			var instancesToAwaken = this.awakenQueue.ToList();
+			foreach (var instance in instancesToAwaken)
 			{
 				if (!instance.IsAlive)
 				{
@@ -195,7 +196,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 				}
 			}
 			
-			foreach (var instance in this.awakenQueue)
+			foreach (var instance in instancesToAwaken)
 			{
 				if (!instance.IsAlive)
 				{
@@ -213,7 +214,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 				}
 			}
 			
-			foreach (var instance in this.awakenQueue)
+			foreach (var instance in instancesToAwaken)
 			{
 				if (!instance.IsAlive)
 				{
@@ -239,7 +240,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 		
 		private void EnableEnqueued()
 		{
-			foreach (var instance in this.enableQueue)
+			var instancesToEnable = this.enableQueue.ToList();
+			foreach (var instance in instancesToEnable)
 			{
 				if (!instance.IsAlive)
 				{
@@ -262,7 +264,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 				}
 			}
 			
-			foreach (var instance in this.enableQueue)
+			foreach (var instance in instancesToEnable)
 			{
 				if (!instance.IsAlive)
 				{
@@ -288,7 +290,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 		
 		private void DisableEnqueued()
 		{
-			foreach (var instance in this.disableQueue)
+			var instancesToDisable = this.disableQueue.ToList();
+			foreach (var instance in instancesToDisable)
 			{
 				if (instance is null)
 				{
@@ -306,7 +309,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 				}
 			}
 			
-			foreach (var instance in this.disableQueue)
+			foreach (var instance in instancesToDisable)
 			{
 				if (instance is null)
 				{
@@ -327,7 +330,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 		
 		private void DestroyEnqueued()
 		{
-			foreach (var instance in this.destroyQueue)
+			var instancesToDestroy = this.destroyQueue.ToList();
+			foreach (var instance in instancesToDestroy)
 			{
 				if (instance is null)
 				{
@@ -345,7 +349,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 				}
 			}
 			
-			foreach (var instance in this.destroyQueue)
+			foreach (var instance in instancesToDestroy)
 			{
 				if (instance is null)
 				{
@@ -363,7 +367,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 				}
 			}
 
-			foreach (var instance in this.destroyQueue)
+			foreach (var instance in instancesToDestroy)
 			{
 				try
 				{
