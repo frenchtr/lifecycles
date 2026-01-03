@@ -26,7 +26,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 
 			if (singleton != this)
 			{
-				Destroy(this);
+				Destroy(this.gameObject);
 				return;
 			}
 
