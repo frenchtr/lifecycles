@@ -15,7 +15,6 @@ namespace TravisRFrench.Lifecycles.Runtime
 				{
 					var service = new LifeCycleService();
 					Lifecycle.ProvideService(service);
-					ManagedMonoBehaviour.ProvideService(service);
 				}
 			}
 

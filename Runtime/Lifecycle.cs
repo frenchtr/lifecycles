@@ -7,6 +7,7 @@
 		public static void ProvideService(ILifeCycleService lifeCycleService)
 		{
 			Service = lifeCycleService;
+			ManagedMonoBehaviour.ProvideService(lifeCycleService);
 		}
 	}
 }
