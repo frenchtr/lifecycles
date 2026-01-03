@@ -25,6 +25,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 			};
 			
 			var manager = gameObject.AddComponent<LifeCycleManager>();
+			Object.DontDestroyOnLoad(gameObject);
 		}
 	}
 }
