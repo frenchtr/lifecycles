@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace TravisRFrench.Lifecycles.Runtime
 {
@@ -11,101 +10,109 @@ namespace TravisRFrench.Lifecycles.Runtime
 		{
 			ManagedMonoBehaviour.lifeCycleService = lifeCycleService;
 		}
-		
+
 		bool IHasManagedLifeCycle.IsAlive => this != null;
 		bool IHasManagedLifeCycle.IsEnabled => this.enabled;
 
 		public LifecyclePhase Phase { get; private set; }
 
-		protected virtual void OnCompose()
-		{
-		}
+		// -----------------
+		// Overridable hooks
+		// -----------------
 
-		protected virtual void OnRegister()
-		{
-		}
+		protected virtual void OnLifeCycleCompose() { }
+		protected virtual void OnLifeCycleVerifyConfiguration() { }
+		protected virtual void OnLifeCycleRegisterForDiscovery() { }
+		protected virtual void OnLifeCycleWireEndpoints() { }
+		protected virtual void OnLifeCycleSubscribeToExternalEvents() { }
+		protected virtual void OnLifeCycleInitialize() { }
+		protected virtual void OnLifeCycleActivate() { }
 
-		protected virtual void OnInitialize()
-		{
-		}
+		protected virtual void OnLifeCycleDeactivate() { }
+		protected virtual void OnLifeCycleUnsubscribeFromExternalEvents() { }
+		protected virtual void OnLifeCycleUnwireEndpoints() { }
+		protected virtual void OnLifeCycleUnregisterFromDiscovery() { }
+		protected virtual void OnLifeCycleDispose() { }
 
-		protected virtual void OnBind()
-		{
-		}
+		// -----------------
+		// Explicit interface
+		// -----------------
 
-		protected virtual void OnActivate()
+		void IHasManagedLifeCycle.OnLifeCycleCompose()
 		{
-		}
-
-		protected virtual void OnDeactivate()
-		{
-		}
-		
-		protected virtual void OnUnbind()
-		{
-		}
-
-		protected virtual void OnUnregister()
-		{
-		}
-
-		protected virtual void OnDispose()
-		{
-		}
-		
-		void IHasManagedLifeCycle.OnCompose()
-		{
-			this.OnCompose();
+			this.OnLifeCycleCompose();
 			this.Phase = LifecyclePhase.Composed;
 		}
 
-		void IHasManagedLifeCycle.OnRegister()
+		void IHasManagedLifeCycle.OnLifeCycleVerifyConfiguration()
 		{
-			this.OnRegister();
+			this.OnLifeCycleVerifyConfiguration();
+			this.Phase = LifecyclePhase.Verified;
+		}
+
+		void IHasManagedLifeCycle.OnLifeCycleRegisterForDiscovery()
+		{
+			this.OnLifeCycleRegisterForDiscovery();
 			this.Phase = LifecyclePhase.Registered;
 		}
 
-		void IHasManagedLifeCycle.OnInitialize()
+		void IHasManagedLifeCycle.OnLifeCycleWireEndpoints()
 		{
-			this.OnInitialize();
+			this.OnLifeCycleWireEndpoints();
+			this.Phase = LifecyclePhase.Wired;
+		}
+
+		void IHasManagedLifeCycle.OnLifeCycleSubscribeToExternalEvents()
+		{
+			this.OnLifeCycleSubscribeToExternalEvents();
+			this.Phase = LifecyclePhase.Subscribed;
+		}
+		
+		void IHasManagedLifeCycle.OnLifeCycleInitialize()
+		{
+			this.OnLifeCycleInitialize();
 			this.Phase = LifecyclePhase.Initialized;
 		}
 
-		void IHasManagedLifeCycle.OnBind()
+		void IHasManagedLifeCycle.OnLifeCycleActivate()
 		{
-			this.OnBind();
-			this.Phase = LifecyclePhase.Bound;
-		}
-
-		void IHasManagedLifeCycle.OnActivate()
-		{
-			this.OnActivate();
+			this.OnLifeCycleActivate();
 			this.Phase = LifecyclePhase.Activated;
 		}
 
-		void IHasManagedLifeCycle.OnDeactivate()
+		void IHasManagedLifeCycle.OnLifeCycleDeactivate()
 		{
-			OnDeactivate();
-			Phase = LifecyclePhase.Deactivated;
+			this.OnLifeCycleDeactivate();
+			this.Phase = LifecyclePhase.Deactivated;
 		}
 
-		void IHasManagedLifeCycle.OnUnbind()
+		void IHasManagedLifeCycle.OnLifeCycleUnsubscribeFromExternalEvents()
 		{
-			this.OnUnbind();
-			this.Phase = LifecyclePhase.Unbound;
+			this.OnLifeCycleUnsubscribeFromExternalEvents();
+			this.Phase = LifecyclePhase.Unsubscribed;
 		}
 
-		void IHasManagedLifeCycle.OnUnregister()
+		void IHasManagedLifeCycle.OnLifeCycleUnwireEndpoints()
 		{
-			this.OnUnregister();
+			this.OnLifeCycleUnwireEndpoints();
+			this.Phase = LifecyclePhase.Unwired;
+		}
+
+		void IHasManagedLifeCycle.OnLifeCycleUnregisterFromDiscovery()
+		{
+			this.OnLifeCycleUnregisterFromDiscovery();
 			this.Phase = LifecyclePhase.Unregistered;
 		}
 
-		void IHasManagedLifeCycle.OnDispose()
+		void IHasManagedLifeCycle.OnLifeCycleDispose()
 		{
-			this.OnDispose();
+			this.OnLifeCycleDispose();
 			this.Phase = LifecyclePhase.Disposed;
 		}
+
+		// -----------------
+		// Unity forwarding
+		// -----------------
 
 		private void Awake()
 		{

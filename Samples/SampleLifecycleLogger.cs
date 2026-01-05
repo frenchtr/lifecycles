@@ -10,50 +10,65 @@ namespace TravisRFrench.Lifecycles.lifecycles.Samples
 		{
 			Destroy(this);
 		}
-		
-		protected override void OnCompose()
+
+		protected override void OnLifeCycleCompose()
 		{
-			Debug.Log($"Running {nameof(this.OnCompose)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleCompose)} from {this.gameObject.name}");
 		}
 
-		protected override void OnRegister()
+		protected override void OnLifeCycleVerifyConfiguration()
 		{
-			Debug.Log($"Running {nameof(this.OnRegister)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleVerifyConfiguration)} from {this.gameObject.name}");
 		}
 
-		protected override void OnInitialize()
+		protected override void OnLifeCycleRegisterForDiscovery()
 		{
-			Debug.Log($"Running {nameof(this.OnInitialize)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleRegisterForDiscovery)} from {this.gameObject.name}");
 		}
 
-		protected override void OnBind()
+		protected override void OnLifeCycleWireEndpoints()
 		{
-			Debug.Log($"Running {nameof(this.OnBind)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleWireEndpoints)} from {this.gameObject.name}");
 		}
 
-		protected override void OnActivate()
+		protected override void OnLifeCycleSubscribeToExternalEvents()
 		{
-			Debug.Log($"Running {nameof(this.OnActivate)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleSubscribeToExternalEvents)} from {this.gameObject.name}");
 		}
 
-		protected override void OnDeactivate()
+		protected override void OnLifeCycleInitialize()
 		{
-			Debug.Log($"Running {nameof(this.OnDeactivate)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleInitialize)} from {this.gameObject.name}");
 		}
 
-		protected override void OnUnbind()
+		protected override void OnLifeCycleActivate()
 		{
-			Debug.Log($"Running {nameof(this.OnUnbind)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleActivate)} from {this.gameObject.name}");
 		}
 
-		protected override void OnUnregister()
+		protected override void OnLifeCycleDeactivate()
 		{
-			Debug.Log($"Running {nameof(this.OnUnregister)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleDeactivate)} from {this.gameObject.name}");
 		}
 
-		protected override void OnDispose()
+		protected override void OnLifeCycleUnsubscribeFromExternalEvents()
 		{
-			Debug.Log($"Running {nameof(this.OnDispose)} from {this.gameObject.name}");
+			Debug.Log($"Running {nameof(this.OnLifeCycleUnsubscribeFromExternalEvents)} from {this.gameObject.name}");
+		}
+
+		protected override void OnLifeCycleUnwireEndpoints()
+		{
+			Debug.Log($"Running {nameof(this.OnLifeCycleUnwireEndpoints)} from {this.gameObject.name}");
+		}
+
+		protected override void OnLifeCycleUnregisterFromDiscovery()
+		{
+			Debug.Log($"Running {nameof(this.OnLifeCycleUnregisterFromDiscovery)} from {this.gameObject.name}");
+		}
+
+		protected override void OnLifeCycleDispose()
+		{
+			Debug.Log($"Running {nameof(this.OnLifeCycleDispose)} from {this.gameObject.name}");
 		}
 	}
 }

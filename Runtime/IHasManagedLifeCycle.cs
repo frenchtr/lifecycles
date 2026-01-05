@@ -1,20 +1,26 @@
 ﻿namespace TravisRFrench.Lifecycles.Runtime
 {
-	public interface IHasManagedLifeCycle
-	{
-		bool IsAlive { get; }
-		bool IsEnabled { get; }
-		
-		LifecyclePhase Phase { get; }
-		
-		void OnCompose();
-		void OnRegister();
-		void OnInitialize();
-		void OnBind();
-		void OnActivate();
-		void OnDeactivate();
-		void OnUnbind();
-		void OnUnregister();
-		void OnDispose();
-	}
+    public interface IHasManagedLifeCycle
+    {
+        bool IsAlive { get; }
+        bool IsEnabled { get; }
+
+        LifecyclePhase Phase { get; }
+
+        // Setup
+        void OnLifeCycleCompose();
+        void OnLifeCycleVerifyConfiguration();
+        void OnLifeCycleRegisterForDiscovery();
+        void OnLifeCycleWireEndpoints();
+        void OnLifeCycleInitialize();
+        void OnLifeCycleSubscribeToExternalEvents();
+        void OnLifeCycleActivate();
+
+        // Teardown
+        void OnLifeCycleDeactivate();
+        void OnLifeCycleUnsubscribeFromExternalEvents();
+        void OnLifeCycleUnwireEndpoints();
+        void OnLifeCycleUnregisterFromDiscovery();
+        void OnLifeCycleDispose();
+    }
 }

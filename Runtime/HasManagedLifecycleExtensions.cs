@@ -7,28 +7,34 @@
 			return (instance.Phase >= LifecyclePhase.Composed);
 		}
 
+		public static bool IsVerified(this IHasManagedLifeCycle instance)
+		{
+			return (instance.Phase >= LifecyclePhase.Verified);
+		}
+		
 		public static bool IsRegistered(this IHasManagedLifeCycle instance)
 		{
-			return (instance.Phase >= LifecyclePhase.Registered &&
-			        instance.Phase < LifecyclePhase.Unregistered);
+			return instance.Phase is >= LifecyclePhase.Registered and < LifecyclePhase.Unregistered;
+		}
+
+		public static bool IsWired(this IHasManagedLifeCycle instance)
+		{
+			return instance.Phase is >= LifecyclePhase.Wired and < LifecyclePhase.Unwired;
+		}
+
+		public static bool IsSubscribed(this IHasManagedLifeCycle instance)
+		{
+			return instance.Phase is >= LifecyclePhase.Subscribed and < LifecyclePhase.Unsubscribed;
 		}
 		
 		public static bool IsInitialized(this IHasManagedLifeCycle instance)
 		{
-			return (instance.Phase >= LifecyclePhase.Initialized &&
-			        instance.Phase < LifecyclePhase.Disposed);
+			return instance.Phase is >= LifecyclePhase.Initialized and < LifecyclePhase.Disposed;
 		}
 		
-		public static bool IsBound(this IHasManagedLifeCycle instance)
+		public static bool IsActivated(this IHasManagedLifeCycle instance)
 		{
-			return (instance.Phase >= LifecyclePhase.Bound &&
-			        instance.Phase < LifecyclePhase.Unbound);
-		}
-		
-		public static bool IsActive(this IHasManagedLifeCycle instance)
-		{
-			return (instance.Phase >= LifecyclePhase.Activated &&
-			        instance.Phase < LifecyclePhase.Deactivated);
+			return instance.Phase is >= LifecyclePhase.Activated and < LifecyclePhase.Deactivated;
 		}
 	}
 }

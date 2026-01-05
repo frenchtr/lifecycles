@@ -28,7 +28,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 			{
 				return;
 			}
-			
+
 			this.managedInstances.Add(instance);
 		}
 
@@ -38,34 +38,18 @@ namespace TravisRFrench.Lifecycles.Runtime
 			{
 				return;
 			}
-			
+
 			this.managedInstances.Remove(instance);
 
-			if (this.awakenQueue.Contains(instance))
-			{
-				this.awakenQueue.Remove(instance);				
-			}
-			
-			if (this.enableQueue.Contains(instance))
-			{
-				this.enableQueue.Remove(instance);				
-			}
-			
-			if (this.disableQueue.Contains(instance))
-			{
-				this.disableQueue.Remove(instance);				
-			}
-			
-			if (this.destroyQueue.Contains(instance))
-			{
-				this.destroyQueue.Remove(instance);				
-			}
+			this.awakenQueue.Remove(instance);
+			this.enableQueue.Remove(instance);
+			this.disableQueue.Remove(instance);
+			this.destroyQueue.Remove(instance);
 		}
 
 		public void AwakenAll()
 		{
-			var instancesToAwaken = this.managedInstances.ToList();
-			foreach (var instance in instancesToAwaken)
+			foreach (var instance in this.managedInstances.ToList())
 			{
 				this.RequestAwaken(instance);
 			}
@@ -73,8 +57,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 
 		public void EnableAll()
 		{
-			var instancesToEnable = this.managedInstances.ToList();
-			foreach (var instance in instancesToEnable)
+			foreach (var instance in this.managedInstances.ToList())
 			{
 				this.RequestEnable(instance);
 			}
@@ -82,8 +65,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 
 		public void DisableAll()
 		{
-			var instancesToDisable = this.managedInstances.ToList();
-			foreach (var instance in instancesToDisable)
+			foreach (var instance in this.managedInstances.ToList())
 			{
 				this.RequestDisable(instance);
 			}
@@ -91,8 +73,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 
 		public void DestroyAll()
 		{
-			var instancesToDestroy = this.managedInstances.ToList();
-			foreach (var instance in instancesToDestroy)
+			foreach (var instance in this.managedInstances.ToList())
 			{
 				this.RequestDestroy(instance);
 			}
@@ -105,10 +86,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 				return;
 			}
 
-			if (this.destroyQueue.Contains(instance))
-			{
-				this.destroyQueue.Remove(instance);
-			}
+			// If it was previously queued for destruction, revive the request.
+			this.destroyQueue.Remove(instance);
 
 			this.awakenQueue.Add(instance);
 		}
@@ -119,11 +98,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 			{
 				return;
 			}
-			
-			if (this.disableQueue.Contains(instance))
-			{
-				this.disableQueue.Remove(instance);
-			}
+
+			this.disableQueue.Remove(instance);
 
 			this.enableQueue.Add(instance);
 		}
@@ -134,11 +110,8 @@ namespace TravisRFrench.Lifecycles.Runtime
 			{
 				return;
 			}
-			
-			if (this.enableQueue.Contains(instance))
-			{
-				this.enableQueue.Remove(instance);
-			}
+
+			this.enableQueue.Remove(instance);
 
 			this.disableQueue.Add(instance);
 		}
@@ -149,279 +122,358 @@ namespace TravisRFrench.Lifecycles.Runtime
 			{
 				return;
 			}
-			
-			if (this.awakenQueue.Contains(instance))
-			{
-				this.awakenQueue.Remove(instance);
-			}
+
+			this.awakenQueue.Remove(instance);
+			this.enableQueue.Remove(instance);
+			this.disableQueue.Remove(instance);
 
 			this.destroyQueue.Add(instance);
 
-			this.DestroyImmediate(instance);			
+			this.DestroyImmediate(instance);
 		}
 
 		public void Tick()
 		{
 			this.AwakenEnqueued();
 			this.awakenQueue.Clear();
-			
+
 			this.EnableEnqueued();
 			this.enableQueue.Clear();
-			
+
 			this.DisableEnqueued();
 			this.disableQueue.Clear();
-			
+
 			this.DestroyEnqueued();
 			this.destroyQueue.Clear();
 		}
-		
+
 		private void AwakenEnqueued()
 		{
-			var instancesToAwaken = this.awakenQueue.ToList();
-			foreach (var instance in instancesToAwaken)
-			{
-				if (!instance.IsAlive)
-				{
-					continue;
-				}
-				
-				try
-				{
-					instance.OnCompose();
-				}
-				catch (Exception exception)
-				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnCompose)} method of {instance}.");
-					throw;
-				}
-			}
-			
-			foreach (var instance in instancesToAwaken)
-			{
-				if (!instance.IsAlive)
-				{
-					continue;
-				}
-				
-				try
-				{
-					instance.OnRegister();
-				}
-				catch (Exception exception)
-				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnRegister)} method of {instance}.");
-					throw;
-				}
-			}
-			
-			foreach (var instance in instancesToAwaken)
+			var instances = this.awakenQueue.ToList();
+
+			// 1) Compose
+			foreach (var instance in instances)
 			{
 				if (!instance.IsAlive)
 				{
 					continue;
 				}
 
-				if (!instance.IsEnabled)
+				try
+				{
+					instance.OnLifeCycleCompose();
+				}
+				catch (Exception)
+				{
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleCompose)} method of {instance}.");
+					throw;
+				}
+			}
+
+			// 2) Verify
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive)
 				{
 					continue;
 				}
-				
+
 				try
 				{
-					instance.OnInitialize();
+					instance.OnLifeCycleVerifyConfiguration();
 				}
-				catch (Exception exception)
+				catch (Exception)
 				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnInitialize)} method of {instance}.");
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleVerifyConfiguration)} method of {instance}.");
+					throw;
+				}
+			}
+
+			// 3) Register for discovery
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive)
+				{
+					continue;
+				}
+
+				try
+				{
+					instance.OnLifeCycleRegisterForDiscovery();
+				}
+				catch (Exception)
+				{
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleRegisterForDiscovery)} method of {instance}.");
+					throw;
+				}
+			}
+
+			// 4) Wire endpoints (initial binding)
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive)
+				{
+					continue;
+				}
+
+				try
+				{
+					instance.OnLifeCycleWireEndpoints();
+				}
+				catch (Exception)
+				{
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleWireEndpoints)} method of {instance}.");
+					throw;
+				}
+			}
+			
+			// 5) Initialize (domain-specific readiness before any subscriptions/activation)
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive)
+				{
+					continue;
+				}
+
+				try
+				{
+					instance.OnLifeCycleInitialize();
+				}
+				catch (Exception)
+				{
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleInitialize)} method of {instance}.");
 					throw;
 				}
 			}
 		}
-		
+
 		private void EnableEnqueued()
 		{
-			var instancesToEnable = this.enableQueue.ToList();
-			foreach (var instance in instancesToEnable)
-			{
-				if (!instance.IsAlive)
-				{
-					continue;
-				}
+			var instances = this.enableQueue.ToList();
 
-				if (!instance.IsEnabled)
+			// 6) Subscribe to external events
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive || !instance.IsEnabled)
 				{
 					continue;
 				}
 
 				try
 				{
-					instance.OnBind();
+					instance.OnLifeCycleSubscribeToExternalEvents();
 				}
-				catch (Exception exception)
+				catch (Exception)
 				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnBind)} method of {instance}.");
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleSubscribeToExternalEvents)} method of {instance}.");
 					throw;
 				}
 			}
-			
-			foreach (var instance in instancesToEnable)
+
+			// 7) Activate
+			foreach (var instance in instances)
 			{
-				if (!instance.IsAlive)
+				if (!instance.IsAlive || !instance.IsEnabled)
 				{
 					continue;
 				}
 
-				if (!instance.IsEnabled)
-				{
-					continue;
-				}
-				
 				try
 				{
-					instance.OnActivate();
+					instance.OnLifeCycleActivate();
 				}
-				catch (Exception exception)
+				catch (Exception)
 				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnActivate)} method of {instance}.");
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleActivate)} method of {instance}.");
 					throw;
 				}
 			}
 		}
-		
+
 		private void DisableEnqueued()
 		{
-			var instancesToDisable = this.disableQueue.ToList();
-			foreach (var instance in instancesToDisable)
+			var instances = this.disableQueue.ToList();
+
+			// 8) Deactivate
+			foreach (var instance in instances)
 			{
-				if (instance is null)
+				if (!instance.IsAlive)
 				{
 					continue;
 				}
-				
+
 				try
 				{
-					instance.OnDeactivate();
+					instance.OnLifeCycleDeactivate();
 				}
-				catch (Exception exception)
+				catch (Exception)
 				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnDeactivate)} method of {instance}.");
-					throw;
-				}
-			}
-			
-			foreach (var instance in instancesToDisable)
-			{
-				if (instance is null)
-				{
-					continue;
-				}
-				
-				try
-				{
-					instance.OnUnbind();
-				}
-				catch (Exception exception)
-				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnUnbind)} method of {instance}.");
-					throw;
-				}
-			}
-		}
-		
-		private void DestroyEnqueued()
-		{
-			var instancesToDestroy = this.destroyQueue.ToList();
-			foreach (var instance in instancesToDestroy)
-			{
-				if (instance is null)
-				{
-					continue;
-				}
-				
-				try
-				{
-					instance.OnUnregister();
-				}
-				catch (Exception exception)
-				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnUnregister)} method of {instance}.");
-					throw;
-				}
-			}
-			
-			foreach (var instance in instancesToDestroy)
-			{
-				if (instance is null)
-				{
-					continue;
-				}
-				
-				try
-				{
-					instance.OnDispose();
-				}
-				catch (Exception exception)
-				{
-					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnDispose)} method of {instance}.");
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleDeactivate)} method of {instance}.");
 					throw;
 				}
 			}
 
-			foreach (var instance in instancesToDestroy)
+			// 9) Unsubscribe
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive)
+				{
+					continue;
+				}
+
+				try
+				{
+					instance.OnLifeCycleUnsubscribeFromExternalEvents();
+				}
+				catch (Exception)
+				{
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleUnsubscribeFromExternalEvents)} method of {instance}.");
+					throw;
+				}
+			}
+
+			// 10) Unwire
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive)
+				{
+					continue;
+				}
+
+				try
+				{
+					instance.OnLifeCycleUnwireEndpoints();
+				}
+				catch (Exception)
+				{
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleUnwireEndpoints)} method of {instance}.");
+					throw;
+				}
+			}
+		}
+
+		private void DestroyEnqueued()
+		{
+			var instances = this.destroyQueue.ToList();
+
+			// 11) Unregister
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive)
+				{
+					continue;
+				}
+
+				try
+				{
+					instance.OnLifeCycleUnregisterFromDiscovery();
+				}
+				catch (Exception)
+				{
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleUnregisterFromDiscovery)} method of {instance}.");
+					throw;
+				}
+			}
+
+			// 12) Dispose
+			foreach (var instance in instances)
+			{
+				if (!instance.IsAlive)
+				{
+					continue;
+				}
+
+				try
+				{
+					instance.OnLifeCycleDispose();
+				}
+				catch (Exception)
+				{
+					Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleDispose)} method of {instance}.");
+					throw;
+				}
+			}
+
+			foreach (var instance in instances)
 			{
 				try
 				{
 					this.Unmanage(instance);
 				}
-				catch (Exception exception)
+				catch (Exception)
 				{
 					Debug.LogError($"An error occurred when unmanaging instance {instance}.");
 					throw;
 				}
 			}
 		}
-		
-		
 
 		private void DestroyImmediate(IHasManagedLifeCycle instance)
 		{
+			// Best-effort teardown ordering:
+			// Deactivate -> Unsubscribe -> Unwire -> Unregister -> Dispose -> Unmanage
 			try
 			{
-				instance.OnDeactivate();
+				if (instance.IsAlive)
+				{
+					instance.OnLifeCycleDeactivate();
+				}
 			}
-			catch (Exception exception)
+			catch (Exception)
 			{
-				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnDeactivate)} method of {instance}.");
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleDeactivate)} method of {instance}.");
 				throw;
 			}
-			
+
 			try
 			{
-				instance.OnUnbind();
+				if (instance.IsAlive)
+				{
+					instance.OnLifeCycleUnsubscribeFromExternalEvents();
+				}
 			}
-			catch (Exception exception)
+			catch (Exception)
 			{
-				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnUnbind)} method of {instance}.");
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleUnsubscribeFromExternalEvents)} method of {instance}.");
 				throw;
 			}
-			
+
 			try
 			{
-				instance.OnUnregister();
+				if (instance.IsAlive)
+				{
+					instance.OnLifeCycleUnwireEndpoints();
+				}
 			}
-			catch (Exception exception)
+			catch (Exception)
 			{
-				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnUnregister)} method of {instance}.");
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleUnwireEndpoints)} method of {instance}.");
 				throw;
 			}
-			
+
 			try
 			{
-				instance.OnDispose();
+				if (instance.IsAlive)
+				{
+					instance.OnLifeCycleUnregisterFromDiscovery();
+				}
 			}
-			catch (Exception exception)
+			catch (Exception)
 			{
-				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnDispose)} method of {instance}.");
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleUnregisterFromDiscovery)} method of {instance}.");
+				throw;
+			}
+
+			try
+			{
+				if (instance.IsAlive)
+				{
+					instance.OnLifeCycleDispose();
+				}
+			}
+			catch (Exception)
+			{
+				Debug.LogError($"An error occurred in the {nameof(IHasManagedLifeCycle.OnLifeCycleDispose)} method of {instance}.");
 				throw;
 			}
 
@@ -429,7 +481,7 @@ namespace TravisRFrench.Lifecycles.Runtime
 			{
 				this.Unmanage(instance);
 			}
-			catch (Exception exception)
+			catch (Exception)
 			{
 				Debug.LogError($"An error occurred when unmanaging instance {instance}.");
 				throw;
