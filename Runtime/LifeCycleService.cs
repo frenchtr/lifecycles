@@ -1,163 +1,116 @@
-﻿using System;
+﻿// =========================
+// File: LifeCycleService.cs
+// =========================
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 namespace TravisRFrench.Lifecycles.Runtime
 {
-	public class LifeCycleService : ILifeCycleService
+	/// <summary>
+	/// Deterministic lifecycle runtime that executes framework-owned phases as barriers.
+	/// Unity callbacks are treated as requests; execution occurs in Tick().
+	/// </summary>
+	public sealed class LifeCycleService : ILifeCycleService
 	{
-		private readonly List<IHasManagedLifeCycle> managedInstances;
-		private readonly List<IHasManagedLifeCycle> awakenQueue;
-		private readonly List<IHasManagedLifeCycle> enableQueue;
-		private readonly List<IHasManagedLifeCycle> disableQueue;
-		private readonly List<IHasManagedLifeCycle> destroyQueue;
+		private readonly List<ILifeCycleManaged> managed = new();
+		private readonly Dictionary<ILifeCycleManaged, LifecycleState> state = new();
 
-		public LifeCycleService(IEnumerable<IHasManagedLifeCycle> managedInstances = null)
-		{
-			this.managedInstances = managedInstances?
-				.Where(i => i != null)
-				.Distinct()
-				.ToList()
-				?? new List<IHasManagedLifeCycle>();
+		private readonly List<ILifeCycleManaged> awakeQueue = new();
+		private readonly List<ILifeCycleManaged> enableQueue = new();
+		private readonly List<ILifeCycleManaged> disableQueue = new();
+		private readonly List<ILifeCycleManaged> destroyQueue = new();
 
-			this.awakenQueue = new List<IHasManagedLifeCycle>();
-			this.enableQueue = new List<IHasManagedLifeCycle>();
-			this.disableQueue = new List<IHasManagedLifeCycle>();
-			this.destroyQueue = new List<IHasManagedLifeCycle>();
-		}
+		// Deferred unmanage to preserve barrier processing
+		private readonly HashSet<ILifeCycleManaged> pendingRemoval = new();
 
-		public void Manage(IHasManagedLifeCycle instance)
+		public void Manage(ILifeCycleManaged instance)
 		{
 			if (instance == null)
 			{
-				Debug.LogError(LifecycleLogMessages.FormatNullArgument(nameof(Manage)));
+				Debug.LogError(LifecycleLogMessages.FormatNullArgument(nameof(this.Manage)));
 				return;
 			}
 
-			if (this.managedInstances.Contains(instance))
+			if (this.managed.Contains(instance))
 			{
 				return;
 			}
 
-			this.managedInstances.Add(instance);
+			this.managed.Add(instance);
+			this.state[instance] = new LifecycleState();
+
+			this.MirrorAll(instance);
 		}
 
-		public void Unmanage(IHasManagedLifeCycle instance)
+		public void Unmanage(ILifeCycleManaged instance)
 		{
 			if (instance == null)
 			{
 				return;
 			}
 
-			if (!this.managedInstances.Contains(instance))
-			{
-				return;
-			}
+			this.managed.Remove(instance);
+			this.state.Remove(instance);
 
-			this.managedInstances.Remove(instance);
-
-			this.awakenQueue.Remove(instance);
+			this.awakeQueue.Remove(instance);
 			this.enableQueue.Remove(instance);
 			this.disableQueue.Remove(instance);
 			this.destroyQueue.Remove(instance);
+			this.pendingRemoval.Remove(instance);
 		}
 
-		public void AwakenAll()
+		public void RequestAwake(ILifeCycleManaged instance)
 		{
-			foreach (var instance in this.managedInstances.ToList())
-			{
-				this.RequestAwaken(instance);
-			}
-		}
-
-		public void EnableAll()
-		{
-			foreach (var instance in this.managedInstances.ToList())
-			{
-				this.RequestEnable(instance);
-			}
-		}
-
-		public void DisableAll()
-		{
-			foreach (var instance in this.managedInstances.ToList())
-			{
-				this.RequestDisable(instance);
-			}
-		}
-
-		public void DestroyAll()
-		{
-			foreach (var instance in this.managedInstances.ToList())
-			{
-				this.RequestDestroy(instance);
-			}
-		}
-
-		public void RequestAwaken(IHasManagedLifeCycle instance)
-		{
-			if (instance == null)
-			{
-				Debug.LogError(LifecycleLogMessages.FormatNullArgument(nameof(RequestAwaken)));
-				return;
-			}
-
-			if (this.awakenQueue.Contains(instance))
+			if (!this.GuardRequest(instance, nameof(this.RequestAwake)))
 			{
 				return;
 			}
 
-			// If it was previously queued for destruction, revive the request.
-			this.destroyQueue.Remove(instance);
-
-			this.awakenQueue.Add(instance);
+			if (!this.awakeQueue.Contains(instance))
+			{
+				this.destroyQueue.Remove(instance);
+				this.awakeQueue.Add(instance);
+			}
 		}
 
-		public void RequestEnable(IHasManagedLifeCycle instance)
+		public void RequestEnable(ILifeCycleManaged instance)
 		{
-			if (instance == null)
-			{
-				Debug.LogError(LifecycleLogMessages.FormatNullArgument(nameof(RequestEnable)));
-				return;
-			}
-
-			if (this.enableQueue.Contains(instance))
+			if (!this.GuardRequest(instance, nameof(this.RequestEnable)))
 			{
 				return;
 			}
 
-			this.disableQueue.Remove(instance);
-			this.enableQueue.Add(instance);
+			if (!this.enableQueue.Contains(instance))
+			{
+				this.disableQueue.Remove(instance);
+				this.enableQueue.Add(instance);
+			}
 		}
 
-		public void RequestDisable(IHasManagedLifeCycle instance)
+		public void RequestDisable(ILifeCycleManaged instance)
 		{
-			if (instance == null)
-			{
-				Debug.LogError(LifecycleLogMessages.FormatNullArgument(nameof(RequestDisable)));
-				return;
-			}
-
-			if (this.disableQueue.Contains(instance))
+			if (!this.GuardRequest(instance, nameof(this.RequestDisable)))
 			{
 				return;
 			}
 
-			this.enableQueue.Remove(instance);
-			this.disableQueue.Add(instance);
+			if (!this.disableQueue.Contains(instance))
+			{
+				this.enableQueue.Remove(instance);
+				this.disableQueue.Add(instance);
+			}
 		}
 
-		public void RequestDestroy(IHasManagedLifeCycle instance)
+		public void RequestDestroy(ILifeCycleManaged instance)
 		{
-			if (instance == null)
+			if (!this.GuardRequest(instance, nameof(this.RequestDestroy)))
 			{
-				Debug.LogError(LifecycleLogMessages.FormatNullArgument(nameof(RequestDestroy)));
 				return;
 			}
 
-			// Remove from other queues first.
-			this.awakenQueue.Remove(instance);
+			this.awakeQueue.Remove(instance);
 			this.enableQueue.Remove(instance);
 			this.disableQueue.Remove(instance);
 
@@ -166,252 +119,463 @@ namespace TravisRFrench.Lifecycles.Runtime
 				this.destroyQueue.Add(instance);
 			}
 
+			// Immediate destroy semantics for this instance:
+			// - run destroy pass now for this instance
+			// - defer unmanage until end-of-tick
 			this.DestroyImmediate(instance);
 		}
 
 		public void Tick()
 		{
-			try { this.AwakenEnqueued(); }
-			finally { this.awakenQueue.Clear(); }
+			try { this.DrainAwake(); }
+			finally { this.awakeQueue.Clear(); }
 
-			try { this.EnableEnqueued(); }
+			try { this.DrainEnable(); }
 			finally { this.enableQueue.Clear(); }
 
-			try { this.DisableEnqueued(); }
+			try { this.DrainDisable(); }
 			finally { this.disableQueue.Clear(); }
 
-			try { this.DestroyEnqueued(); }
+			try { this.DrainDestroy(); }
 			finally { this.destroyQueue.Clear(); }
-		}
 
-		private void AwakenEnqueued()
-		{
-			var instances = this.awakenQueue.Where(i => i != null).ToList();
-
-			// Compose
-			foreach (var instance in instances)
+			if (this.pendingRemoval.Count > 0)
 			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Composed, nameof(IHasManagedLifeCycle.OnLifeCycleCompose), instance.OnLifeCycleCompose);
-			}
-
-			// Verify
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Verified, nameof(IHasManagedLifeCycle.OnLifeCycleVerifyConfiguration), instance.OnLifeCycleVerifyConfiguration);
-			}
-
-			// Register for discovery
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Registered, nameof(IHasManagedLifeCycle.OnLifeCycleRegisterForDiscovery), instance.OnLifeCycleRegisterForDiscovery);
-			}
-
-			// Wire endpoints (initial binding)
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Wired, nameof(IHasManagedLifeCycle.OnLifeCycleWireEndpoints), instance.OnLifeCycleWireEndpoints);
-			}
-
-			// Initialize
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Initialized, nameof(IHasManagedLifeCycle.OnLifeCycleInitialize), instance.OnLifeCycleInitialize);
-			}
-		}
-
-		private void EnableEnqueued()
-		{
-			var instances = this.enableQueue.Where(i => i != null).ToList();
-
-			// Subscribe to external events
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive || !instance.IsEnabled) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Subscribed, nameof(IHasManagedLifeCycle.OnLifeCycleSubscribeToExternalEvents), instance.OnLifeCycleSubscribeToExternalEvents);
-			}
-
-			// Activate
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive || !instance.IsEnabled) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Activated, nameof(IHasManagedLifeCycle.OnLifeCycleActivate), instance.OnLifeCycleActivate);
-			}
-		}
-
-		private void DisableEnqueued()
-		{
-			var instances = this.disableQueue.Where(i => i != null).ToList();
-
-			// Deactivate
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Deactivated, nameof(IHasManagedLifeCycle.OnLifeCycleDeactivate), instance.OnLifeCycleDeactivate);
-			}
-
-			// Unsubscribe
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Unsubscribed, nameof(IHasManagedLifeCycle.OnLifeCycleUnsubscribeFromExternalEvents), instance.OnLifeCycleUnsubscribeFromExternalEvents);
-			}
-
-			// Unwire
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Unwired, nameof(IHasManagedLifeCycle.OnLifeCycleUnwireEndpoints), instance.OnLifeCycleUnwireEndpoints);
-			}
-		}
-
-		private void DestroyEnqueued()
-		{
-			var instances = this.destroyQueue.Where(i => i != null).ToList();
-
-			// Unregister
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Unregistered, nameof(IHasManagedLifeCycle.OnLifeCycleUnregisterFromDiscovery), instance.OnLifeCycleUnregisterFromDiscovery);
-			}
-
-			// Dispose
-			foreach (var instance in instances)
-			{
-				if (!instance.IsAlive) continue;
-				LifecycleInvoker.SafeInvoke(instance, LifecyclePhase.Disposed, nameof(IHasManagedLifeCycle.OnLifeCycleDispose), instance.OnLifeCycleDispose);
-			}
-
-			// Unmanage (not an official phase)
-			foreach (var instance in instances)
-			{
-				try
+				foreach (var inst in this.pendingRemoval.ToList())
 				{
-					this.Unmanage(instance);
+					this.Unmanage(inst);
 				}
-				catch (Exception ex)
+
+				this.pendingRemoval.Clear();
+			}
+		}
+
+		// -------------------
+		// Barrier processing
+		// -------------------
+
+		private void DrainAwake()
+		{
+			var instances = Snapshot(this.awakeQueue);
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
 				{
-					LifecycleErrorReporter.ReportNonPhaseFailure(instance, nameof(Unmanage), ex);
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.Assembled, nameof(ILifeCycleManaged.Compose), inst.Compose);
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.VerifiedStructure, nameof(ILifeCycleManaged.VerifyComposition), inst.VerifyComposition);
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.Registered, nameof(ILifeCycleManaged.Register), inst.Register);
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.Setup, nameof(ILifeCycleManaged.Setup), inst.Setup);
+			}
+		}
+
+		private void DrainEnable()
+		{
+			var instances = Snapshot(this.enableQueue);
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				if (!this.HasReached(inst, LifecyclePhase.Setup))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.InitializedEnable, nameof(ILifeCycleManaged.InitializeEnable), inst.InitializeEnable);
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				if (!this.HasReached(inst, LifecyclePhase.InitializedEnable))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.Subscribed, nameof(ILifeCycleManaged.Subscribe), inst.Subscribe);
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				if (!this.HasReached(inst, LifecyclePhase.Subscribed))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.Activated, nameof(ILifeCycleManaged.Activate), inst.Activate);
+				if (!this.IsFaulted(inst))
+				{
+					this.SetActive(inst, true);
 				}
 			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				if (!this.HasReached(inst, LifecyclePhase.Activated))
+				{
+					continue;
+				}
+
+				var s = this.state[inst];
+				if (s.HasFirstActivationRun)
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.FirstActivation, nameof(ILifeCycleManaged.FirstActivation), inst.FirstActivation);
+				if (!this.IsFaulted(inst))
+				{
+					s.MarkFirstActivationRun();
+				}
+
+				this.MirrorAll(inst);
+			}
 		}
 
-		private void DestroyImmediate(IHasManagedLifeCycle instance)
+		private void DrainDisable()
+		{
+			var instances = Snapshot(this.disableQueue);
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				if (!this.HasReached(inst, LifecyclePhase.Activated))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.Deactivated, nameof(ILifeCycleManaged.Deactivate), inst.Deactivate);
+				if (!this.IsFaulted(inst))
+				{
+					this.SetActive(inst, false); // at end of deactivate
+				}
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				if (!this.HasReached(inst, LifecyclePhase.Subscribed))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.Unsubscribed, nameof(ILifeCycleManaged.Unsubscribe), inst.Unsubscribe);
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRun(inst))
+				{
+					continue;
+				}
+
+				if (!this.HasReached(inst, LifecyclePhase.InitializedEnable))
+				{
+					continue;
+				}
+
+				this.Advance(inst, LifecyclePhase.FinalizedDisable, nameof(ILifeCycleManaged.FinalizeDisable), inst.FinalizeDisable);
+			}
+		}
+
+		private void DrainDestroy()
+		{
+			var instances = Snapshot(this.destroyQueue);
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRunEvenIfFaulted(inst))
+				{
+					continue;
+				}
+
+				if (this.HasReached(inst, LifecyclePhase.Setup))
+				{
+					this.AdvanceEvenIfFaulted(inst, LifecyclePhase.Teardown, nameof(ILifeCycleManaged.Teardown), inst.Teardown);
+				}
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRunEvenIfFaulted(inst))
+				{
+					continue;
+				}
+
+				if (this.HasReached(inst, LifecyclePhase.Registered))
+				{
+					this.AdvanceEvenIfFaulted(inst, LifecyclePhase.Unregistered, nameof(ILifeCycleManaged.Unregister), inst.Unregister);
+				}
+			}
+
+			foreach (var inst in instances)
+			{
+				if (!this.CanRunEvenIfFaulted(inst))
+				{
+					continue;
+				}
+
+				this.AdvanceEvenIfFaulted(inst, LifecyclePhase.Disposed, nameof(ILifeCycleManaged.Dispose), inst.Dispose);
+
+				this.pendingRemoval.Add(inst);
+			}
+		}
+
+		private void DestroyImmediate(ILifeCycleManaged instance)
 		{
 			try
 			{
-				if (!this.destroyQueue.Contains(instance))
-				{
-					this.destroyQueue.Add(instance);
-				}
-
-				this.DestroyEnqueued();
+				this.destroyQueue.Clear();
+				this.destroyQueue.Add(instance);
+				this.DrainDestroy();
 			}
 			finally
 			{
 				this.destroyQueue.Clear();
 			}
 		}
-	}
 
-	internal static class LifecycleInvoker
-	{
-		public static void SafeInvoke(
-			IHasManagedLifeCycle instance,
-			LifecyclePhase phase,
-			string operation,
-			Action action)
+		// -------------------
+		// Helpers
+		// -------------------
+
+		private static List<ILifeCycleManaged> Snapshot(List<ILifeCycleManaged> queue)
+			=> queue
+				.Where(i => i != null)
+				.Distinct()
+				.ToList();
+
+		private bool GuardRequest(ILifeCycleManaged instance, string operation)
 		{
-			if (instance == null || action == null)
+			if (instance == null)
+			{
+				Debug.LogError(LifecycleLogMessages.FormatNullArgument(operation));
+				return false;
+			}
+
+			if (!this.managed.Contains(instance))
+			{
+				this.Manage(instance);
+			}
+
+			return true;
+		}
+
+		private bool CanRun(ILifeCycleManaged instance)
+		{
+			if (instance == null)
+			{
+				return false;
+			}
+
+			if (!this.state.TryGetValue(instance, out var s))
+			{
+				return false;
+			}
+
+			if (s.IsFaulted)
+			{
+				return false;
+			}
+
+			if (!instance.IsAlive)
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		private bool CanRunEvenIfFaulted(ILifeCycleManaged instance)
+		{
+			if (instance == null)
+			{
+				return false;
+			}
+
+			if (!this.state.ContainsKey(instance))
+			{
+				return false;
+			}
+
+			return true; // allow destroy band despite faults
+		}
+
+		private bool HasReached(ILifeCycleManaged instance, LifecyclePhase phase)
+		{
+			if (!this.state.TryGetValue(instance, out var s))
+			{
+				return false;
+			}
+
+			return s.Phase >= phase && s.Phase != LifecyclePhase.Faulted;
+		}
+
+		private bool IsFaulted(ILifeCycleManaged instance)
+		{
+			return this.state.TryGetValue(instance, out var s) && s.IsFaulted;
+		}
+
+		private void SetActive(ILifeCycleManaged instance, bool active)
+		{
+			var s = this.state[instance];
+			s.SetActive(active);
+
+			if (instance is ILifecycleDebugStateSink sink)
+			{
+				sink.__SetIsActive(active);
+			}
+		}
+
+		private void MarkFaulted(ILifeCycleManaged instance, Exception ex, LifecyclePhase phase, string op)
+		{
+			var summary = LifecycleLogMessages.FormatPhaseFailure(phase, op, instance);
+			this.state[instance].MarkFaulted(ex, summary);
+
+			if (instance is ILifecycleDebugStateSink sink)
+			{
+				sink.__SetIsFaulted(true);
+				sink.__SetFaultSummary(summary);
+				sink.__SetPhase(LifecyclePhase.Faulted);
+			}
+		}
+
+		private void Advance(ILifeCycleManaged instance, LifecyclePhase phase, string operation, Action action)
+		{
+			if (!this.state.TryGetValue(instance, out var s))
 			{
 				return;
 			}
 
-			try
+			if (s.IsFaulted)
 			{
-				action.Invoke();
-			}
-			catch (Exception ex)
-			{
-				LifecycleErrorReporter.ReportPhaseFailure(instance, phase, operation, ex);
-			}
-		}
-	}
-
-	internal static class LifecycleErrorReporter
-	{
-		public static void ReportPhaseFailure(
-			IHasManagedLifeCycle instance,
-			LifecyclePhase phase,
-			string operation,
-			Exception exception)
-		{
-			if (exception == null) return;
-
-			var message = LifecycleLogMessages.FormatPhaseFailure(phase, operation, instance);
-			Log(message, instance, exception);
-		}
-
-		public static void ReportNonPhaseFailure(
-			IHasManagedLifeCycle instance,
-			string operation,
-			Exception exception)
-		{
-			if (exception == null) return;
-
-			var message = LifecycleLogMessages.FormatNonPhaseFailure(operation, instance);
-			Log(message, instance, exception);
-		}
-
-		private static void Log(string message, IHasManagedLifeCycle instance, Exception exception)
-		{
-			// Preserve original stack trace / double-click location by logging the ORIGINAL exception object.
-			if (instance is UnityEngine.Object context)
-			{
-				Debug.LogError(message, context);
-				Debug.LogException(exception, context);
 				return;
 			}
 
-			Debug.LogError(message);
-			Debug.LogException(exception);
-		}
-	}
+			// already at or past
+			if (s.Phase >= phase)
+			{
+				return;
+			}
 
-	/// <summary>
-	/// Centralized log message templates and formatting for lifecycle diagnostics.
-	/// Keep ALL lifecycle-related message strings here.
-	/// </summary>
-	internal static class LifecycleLogMessages
-	{
-		// Templates (single source of truth)
-		private const string NullArgumentTemplate = "[LifeCycleService] Tried to {0} a null instance.";
-		private const string PhaseFailureTemplate = "[Lifecycle:{0}] Operation: {1} Instance: {2}";
-		private const string NonPhaseFailureTemplate = "[Lifecycle] Operation: {0} Instance: {1}";
+			if (!LifecycleInvoker.SafeInvoke(instance, phase, operation, action, out var ex))
+			{
+				this.MarkFaulted(instance, ex, phase, operation);
+				return;
+			}
 
-		public static string FormatNullArgument(string operation)
-		{
-			return string.Format(NullArgumentTemplate, operation);
-		}
+			s.SetPhase(phase);
 
-		public static string FormatPhaseFailure(LifecyclePhase phase, string operation, IHasManagedLifeCycle instance)
-		{
-			return string.Format(PhaseFailureTemplate, phase, operation, GetInstanceTypeName(instance));
+			if (instance is ILifecycleDebugStateSink sink)
+			{
+				sink.__SetPhase(phase);
+			}
 		}
 
-		public static string FormatNonPhaseFailure(string operation, IHasManagedLifeCycle instance)
+		private void AdvanceEvenIfFaulted(ILifeCycleManaged instance, LifecyclePhase phase, string operation, Action action)
 		{
-			return string.Format(NonPhaseFailureTemplate, operation, GetInstanceTypeName(instance));
+			// Allow destroy band even if faulted; still keep idempotency.
+			if (!this.state.TryGetValue(instance, out var s))
+			{
+				return;
+			}
+
+			if (s.Phase >= phase)
+			{
+				return;
+			}
+
+			if (!LifecycleInvoker.SafeInvoke(instance, phase, operation, action, out var ex))
+			{
+				// Do not overwrite prior fault marker; just mirror a summary if we have none.
+				if (s.LastException == null)
+				{
+					this.MarkFaulted(instance, ex, phase, operation);
+				}
+
+				return;
+			}
+
+			s.SetPhase(phase);
+
+			if (instance is ILifecycleDebugStateSink sink)
+			{
+				sink.__SetPhase(phase);
+			}
 		}
 
-		private static string GetInstanceTypeName(IHasManagedLifeCycle instance)
+		private void MirrorAll(ILifeCycleManaged instance)
 		{
-			return instance?.GetType().FullName ?? "<null>";
+			if (!this.state.TryGetValue(instance, out var s))
+			{
+				return;
+			}
+
+			if (instance is not ILifecycleDebugStateSink sink)
+			{
+				return;
+			}
+
+			sink.__SetPhase(s.Phase);
+			sink.__SetIsActive(s.IsActive);
+			sink.__SetIsFaulted(s.IsFaulted);
+			sink.__SetFaultSummary(s.FaultSummary);
 		}
 	}
 }

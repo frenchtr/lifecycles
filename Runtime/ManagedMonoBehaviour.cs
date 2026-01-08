@@ -1,138 +1,105 @@
-﻿using UnityEngine;
+﻿// =========================
+// File: ManagedMonoBehaviour.cs
+// =========================
+using System;
+using UnityEngine;
 
 namespace TravisRFrench.Lifecycles.Runtime
 {
-	public class ManagedMonoBehaviour : MonoBehaviour, IHasManagedLifeCycle
+	/// <summary>
+	/// Base class that routes Unity callbacks into lifecycle requests.
+	/// Execution is performed by LifeCycleService.Tick().
+	///
+	/// NOTE: runtime debug state is NOT serialized; it is mirrored from the lifecycle runtime.
+	/// </summary>
+	public abstract class ManagedMonoBehaviour : MonoBehaviour, ILifeCycleManaged, ILifecycleDebugStateSink
 	{
-		private static ILifeCycleService lifeCycleService;
-
-		internal static void ProvideService(ILifeCycleService lifeCycleService)
-		{
-			ManagedMonoBehaviour.lifeCycleService = lifeCycleService;
-		}
-
-		bool IHasManagedLifeCycle.IsAlive => this != null;
-		bool IHasManagedLifeCycle.IsEnabled => this.enabled;
-
-		public LifecyclePhase Phase { get; private set; }
-
-		// -----------------
-		// Overridable hooks
-		// -----------------
-
-		protected virtual void OnLifeCycleCompose() { }
-		protected virtual void OnLifeCycleVerifyConfiguration() { }
-		protected virtual void OnLifeCycleRegisterForDiscovery() { }
-		protected virtual void OnLifeCycleWireEndpoints() { }
-		protected virtual void OnLifeCycleSubscribeToExternalEvents() { }
-		protected virtual void OnLifeCycleInitialize() { }
-		protected virtual void OnLifeCycleActivate() { }
-
-		protected virtual void OnLifeCycleDeactivate() { }
-		protected virtual void OnLifeCycleUnsubscribeFromExternalEvents() { }
-		protected virtual void OnLifeCycleUnwireEndpoints() { }
-		protected virtual void OnLifeCycleUnregisterFromDiscovery() { }
-		protected virtual void OnLifeCycleDispose() { }
-
-		// -----------------
-		// Explicit interface
-		// -----------------
-
-		void IHasManagedLifeCycle.OnLifeCycleCompose()
-		{
-			this.OnLifeCycleCompose();
-			this.Phase = LifecyclePhase.Composed;
-		}
-
-		void IHasManagedLifeCycle.OnLifeCycleVerifyConfiguration()
-		{
-			this.OnLifeCycleVerifyConfiguration();
-			this.Phase = LifecyclePhase.Verified;
-		}
-
-		void IHasManagedLifeCycle.OnLifeCycleRegisterForDiscovery()
-		{
-			this.OnLifeCycleRegisterForDiscovery();
-			this.Phase = LifecyclePhase.Registered;
-		}
-
-		void IHasManagedLifeCycle.OnLifeCycleWireEndpoints()
-		{
-			this.OnLifeCycleWireEndpoints();
-			this.Phase = LifecyclePhase.Wired;
-		}
-
-		void IHasManagedLifeCycle.OnLifeCycleSubscribeToExternalEvents()
-		{
-			this.OnLifeCycleSubscribeToExternalEvents();
-			this.Phase = LifecyclePhase.Subscribed;
-		}
+		private static ILifeCycleService LifeCycle => LifeCycleRuntime.Service;
 		
-		void IHasManagedLifeCycle.OnLifeCycleInitialize()
-		{
-			this.OnLifeCycleInitialize();
-			this.Phase = LifecyclePhase.Initialized;
-		}
+		[NonSerialized] private LifecyclePhase phase = LifecyclePhase.None;
+		[NonSerialized] private bool isActive;
+		[NonSerialized] private bool isFaulted;
+		[NonSerialized] private string faultSummary;
 
-		void IHasManagedLifeCycle.OnLifeCycleActivate()
-		{
-			this.OnLifeCycleActivate();
-			this.Phase = LifecyclePhase.Activated;
-		}
+		public bool IsAlive { get; private set; } = true;
 
-		void IHasManagedLifeCycle.OnLifeCycleDeactivate()
-		{
-			this.OnLifeCycleDeactivate();
-			this.Phase = LifecyclePhase.Deactivated;
-		}
+		public LifecyclePhase Phase => this.phase;
+		public bool IsActive => this.isActive;
+		public bool IsFaulted => this.isFaulted;
+		public string FaultSummary => this.faultSummary;
+		
+		void ILifeCycleManaged.Compose() => this.OnLifecycleCompose();
+		void ILifeCycleManaged.VerifyComposition() => this.OnLifecycleVerifyComposition();
+		void ILifeCycleManaged.Register() => this.OnLifecycleRegister();
+		void ILifeCycleManaged.Setup() => this.OnLifecycleSetup();
 
-		void IHasManagedLifeCycle.OnLifeCycleUnsubscribeFromExternalEvents()
-		{
-			this.OnLifeCycleUnsubscribeFromExternalEvents();
-			this.Phase = LifecyclePhase.Unsubscribed;
-		}
+		void ILifeCycleManaged.InitializeEnable() => this.OnLifecycleInitializeEnable();
 
-		void IHasManagedLifeCycle.OnLifeCycleUnwireEndpoints()
-		{
-			this.OnLifeCycleUnwireEndpoints();
-			this.Phase = LifecyclePhase.Unwired;
-		}
+		void ILifeCycleManaged.Subscribe() => this.OnLifecycleSubscribe();
 
-		void IHasManagedLifeCycle.OnLifeCycleUnregisterFromDiscovery()
-		{
-			this.OnLifeCycleUnregisterFromDiscovery();
-			this.Phase = LifecyclePhase.Unregistered;
-		}
+		void ILifeCycleManaged.Activate() => this.OnLifecycleActivate();
 
-		void IHasManagedLifeCycle.OnLifeCycleDispose()
-		{
-			this.OnLifeCycleDispose();
-			this.Phase = LifecyclePhase.Disposed;
-		}
+		void ILifeCycleManaged.FirstActivation() => this.OnLifecycleFirstActivation();
 
-		// -----------------
-		// Unity forwarding
-		// -----------------
+		void ILifeCycleManaged.Deactivate() => this.OnLifecycleDeactivate();
+
+		void ILifeCycleManaged.Unsubscribe() => this.OnLifecycleUnsubscribe();
+
+		void ILifeCycleManaged.FinalizeDisable() => this.OnLifecycleFinalizeDisable();
+
+		void ILifeCycleManaged.Teardown() => this.OnLifecycleTeardown();
+
+		void ILifeCycleManaged.Unregister() => this.OnLifecycleUnregister();
+
+		void ILifeCycleManaged.Dispose() => this.OnLifecycleDispose();
 
 		private void Awake()
 		{
-			lifeCycleService.Manage(this);
-			lifeCycleService.RequestAwaken(this);
+			LifeCycle.Manage(this);
+			LifeCycle.RequestAwake(this);
 		}
 
 		private void OnEnable()
 		{
-			lifeCycleService.RequestEnable(this);
+			LifeCycle.RequestEnable(this);
 		}
 
 		private void OnDisable()
 		{
-			lifeCycleService.RequestDisable(this);
+			LifeCycle.RequestDisable(this);
 		}
 
 		private void OnDestroy()
 		{
-			lifeCycleService.RequestDestroy(this);
+			this.IsAlive = false;
+			LifeCycle.RequestDestroy(this);
 		}
+
+		void ILifecycleDebugStateSink.__SetPhase(LifecyclePhase p) => this.phase = p;
+		void ILifecycleDebugStateSink.__SetIsActive(bool a) => this.isActive = a;
+		void ILifecycleDebugStateSink.__SetIsFaulted(bool f) => this.isFaulted = f;
+		void ILifecycleDebugStateSink.__SetFaultSummary(string s) => this.faultSummary = s;
+
+		// Awake band
+		protected virtual void OnLifecycleCompose() { }
+		protected virtual void OnLifecycleVerifyComposition() { }
+		protected virtual void OnLifecycleRegister() { }
+		protected virtual void OnLifecycleSetup() { }
+		
+		// Enable band
+		protected virtual void OnLifecycleInitializeEnable() { }
+		protected virtual void OnLifecycleSubscribe() { }
+		protected virtual void OnLifecycleActivate() { }
+		protected virtual void OnLifecycleFirstActivation() { }
+		
+		// Disable band
+		protected virtual void OnLifecycleDeactivate() { }
+		protected virtual void OnLifecycleUnsubscribe() { }
+		protected virtual void OnLifecycleFinalizeDisable() { }
+		
+		// Destroy band
+		protected virtual void OnLifecycleTeardown() { }
+		protected virtual void OnLifecycleUnregister() { }
+		protected virtual void OnLifecycleDispose() { }
 	}
 }

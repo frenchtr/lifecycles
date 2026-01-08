@@ -225,7 +225,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 854508128}
-  - component: {fileID: 854508127}
+  - component: {fileID: 854508129}
   m_Layer: 0
   m_Name: Logger 3
   m_TagString: Untagged
@@ -233,18 +233,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &854508127
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 854508126}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1b2bc4705ed4c7dad4c02467640a231, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: TravisRFrench.Lifecycles.Samples::TravisRFrench.Lifecycles.lifecycles.Samples.SampleLifecycleLogger
 --- !u!4 &854508128
 Transform:
   m_ObjectHideFlags: 0
@@ -260,6 +248,64 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &854508129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 854508126}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ac3484eb9c64f67aa89ef877ee13080, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TravisRFrench.Lifecycles.Samples::TravisRFrench.Lifecycles.lifecycles.Samples.LifecycleLogger
+  includeFrameCount: 1
+  includeGameObjectPath: 0
+--- !u!1 &930037742
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 930037743}
+  - component: {fileID: 930037744}
+  m_Layer: 0
+  m_Name: LifecycleDriver
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &930037743
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 930037742}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &930037744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 930037742}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2285e7f1aea842109e8acf5b5e217def, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TravisRFrench.Lifecycles.Runtime::TravisRFrench.Lifecycles.Runtime.LifeCycleDriver
 --- !u!1 &1018256199
 GameObject:
   m_ObjectHideFlags: 0
@@ -361,7 +407,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1713452035}
-  - component: {fileID: 1713452034}
+  - component: {fileID: 1713452036}
   m_Layer: 0
   m_Name: Logger 2
   m_TagString: Untagged
@@ -369,18 +415,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1713452034
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1713452033}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1b2bc4705ed4c7dad4c02467640a231, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: TravisRFrench.Lifecycles.Samples::TravisRFrench.Lifecycles.lifecycles.Samples.SampleLifecycleLogger
 --- !u!4 &1713452035
 Transform:
   m_ObjectHideFlags: 0
@@ -396,6 +430,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1713452036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713452033}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ac3484eb9c64f67aa89ef877ee13080, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TravisRFrench.Lifecycles.Samples::TravisRFrench.Lifecycles.lifecycles.Samples.LifecycleLogger
+  includeFrameCount: 1
+  includeGameObjectPath: 0
 --- !u!1 &1917614688
 GameObject:
   m_ObjectHideFlags: 0
@@ -405,7 +453,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1917614690}
-  - component: {fileID: 1917614689}
+  - component: {fileID: 1917614691}
   m_Layer: 0
   m_Name: Logger 1
   m_TagString: Untagged
@@ -413,18 +461,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1917614689
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1917614688}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1b2bc4705ed4c7dad4c02467640a231, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: TravisRFrench.Lifecycles.Samples::TravisRFrench.Lifecycles.lifecycles.Samples.SampleLifecycleLogger
 --- !u!4 &1917614690
 Transform:
   m_ObjectHideFlags: 0
@@ -440,6 +476,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1917614691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1917614688}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ac3484eb9c64f67aa89ef877ee13080, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: TravisRFrench.Lifecycles.Samples::TravisRFrench.Lifecycles.lifecycles.Samples.LifecycleLogger
+  includeFrameCount: 1
+  includeGameObjectPath: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -449,3 +499,4 @@ SceneRoots:
   - {fileID: 1917614690}
   - {fileID: 1713452035}
   - {fileID: 854508128}
+  - {fileID: 930037743}
