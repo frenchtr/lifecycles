@@ -1,15 +1,14 @@
 ﻿// =========================
 // File: LifecycleLogMessages.cs
 // =========================
-using System;
 
 namespace TravisRFrench.Lifecycles.Runtime
 {
 	internal static class LifecycleLogMessages
 	{
-		private const string NullArgumentTemplate = "[LifeCycleService] Tried to {0}(null).";
-		private const string PhaseFailureTemplate = "[Lifecycle:{0}] Op={1} Instance={2}";
-		private const string NonPhaseFailureTemplate = "[Lifecycle] Op={0} Instance={1}";
+		private const string NullArgumentTemplate = "[LifeCycleService] Tried to {0} a null instance.";
+		private const string PhaseFailureTemplate = "[Lifecycle:{0}] Operation: {1} Instance: {2}";
+		private const string NonPhaseFailureTemplate = "[Lifecycle] Operation: {0} Instance: {1}";
 
 		public static string FormatNullArgument(string operation)
 			=> string.Format(NullArgumentTemplate, operation);

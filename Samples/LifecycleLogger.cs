@@ -1,6 +1,7 @@
 // =========================
 // File: LifecycleLogger.cs
 // =========================
+
 using UnityEngine;
 
 namespace TravisRFrench.Lifecycles.Runtime

@@ -1,6 +1,7 @@
 ﻿// =========================
 // File: LifecycleInvoker.cs
 // =========================
+
 using System;
 
 namespace TravisRFrench.Lifecycles.Runtime

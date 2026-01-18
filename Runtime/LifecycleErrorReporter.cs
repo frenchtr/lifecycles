@@ -1,6 +1,7 @@
 ﻿// =========================
 // File: LifecycleErrorReporter.cs
 // =========================
+
 using System;
 using UnityEngine;
 

@@ -1,6 +1,7 @@
 ﻿// =========================
 // File: LifecycleState.cs (internal)
 // =========================
+
 using System;
 
 namespace TravisRFrench.Lifecycles.Runtime
